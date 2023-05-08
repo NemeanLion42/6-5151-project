@@ -1,0 +1,30 @@
+To run the adventure game:
+1. Start a terminal in this directory
+2. Start a Scheme session
+   $ scheme
+3. Load the software manager
+   (load "manager/load")
+4. Load the game code
+   (manage 'new 'user-defined-types)
+5. Start a game
+   (start-adventure player-name)
+   Where player-name is e.g. 'steve
+   
+Once you have started a game, use the following commands. Unless noted otherwise, all arguments should be quoted expressions. Arguments in curly braces are optional. Arguments in brackets will accept any number of arguments.
+
+(go direction)
+    Go from the room you are in to the room in the specified direction.
+(take-thing thing)
+    Take the specified thing from the current room or another person in the room.
+(drop-thing thing)
+    Drop the specified thing you are holding.
+(look-in-bag {person})
+    Look in your bag or the specified person's bag.
+(whats-here)
+    See what's in the current room.
+(say [message])
+    Say something to everyone in the room.
+(tell person [message])
+    Tell a person in the room something.
+(hang-out ticks)
+    Wait for the specified number of ticks.
