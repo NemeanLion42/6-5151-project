@@ -28,3 +28,7 @@ Once you have started a game, use the following commands. Unless noted otherwise
     Tell a person in the room something.
 (hang-out ticks)
     Wait for the specified number of ticks.
+(lock direction)
+    Lock the exit leading in the specified direction.
+(unlock direction)
+    Unlock the exit leading in the specified direction.

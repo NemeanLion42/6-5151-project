@@ -107,6 +107,25 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
     (super exit)
     (add-exit! (get-from exit) exit)))
 
+;;; Lockable exits
+(define lockable-exit:locked
+  (make-property 'locked
+                 'predicate boolean?
+                 'default-value #t))
+
+(define lockable-exit?
+  (make-type 'lockable-exit (list lockable-exit:locked)))
+(set-predicate<=! lockable-exit? exit?)
+
+(define make-lockable-exit
+  (type-instantiator lockable-exit?))
+
+(define get-locked
+  (property-getter lockable-exit:locked lockable-exit?))
+
+(define set-locked!
+  (property-setter lockable-exit:locked lockable-exit? boolean?))
+
 ;;; Places
 
 (define place:vistas
@@ -497,10 +516,13 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   (move! thing (get-location person) person))
 
 (define (take-exit! exit mobile-thing)
-  (generic-move! mobile-thing
-                 (get-from exit)
-                 (get-to exit)
-                 mobile-thing))
+  (if (or (not (lockable-exit? exit))
+          (not (get-locked exit)))
+      (generic-move! mobile-thing
+                     (get-from exit)
+                     (get-to exit)
+                     mobile-thing)
+      (tell! (list "It's locked. Maybe there's a key somewhere...") mobile-thing)))
 
 (define (move! thing destination actor)
   (generic-move! thing

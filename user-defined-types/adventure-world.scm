@@ -103,6 +103,51 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
       ((not (n:< i ticks)))
     (tick! (get-clock)))
   'done)
+
+(define (lock direction)
+  (let ((exit (find-exit-in-direction direction (here))))
+    (if (not exit)
+        (tell! (list "No exit that way") my-avatar)
+        (if (not (lockable-exit? exit))
+            (tell! (list "Nothing to lock") my-avatar)
+            (if (get-locked exit)
+                (tell! (list "It's already locked") my-avatar)
+                (begin
+                  (set-locked! exit #t)
+                  (let ((opposite (find-exit (get-to exit) (here))))
+                    (if opposite
+                        (if (lockable-exit? opposite)
+                            (set-locked! opposite #t))))
+                  (tell! (list "You lock it") my-avatar))))))
+  'done)
+
+(define (unlock direction)
+  (let ((exit (find-exit-in-direction direction (here))))
+    (if (not exit)
+        (tell! (list "No exit that way") my-avatar)
+        (if (not (lockable-exit? exit))
+            (tell! (list "Nothing to unlock") my-avatar)
+            (if (get-locked exit)
+                (begin
+                  (set-locked! exit #f)
+                  (let ((opposite (find-exit (get-to exit) (here))))
+                     (if opposite
+                         (if (lockable-exit? opposite)
+                             (set-locked! opposite #f))))
+                  (tell! (list "You unlock it") my-avatar))
+                (tell! (list "It's already unlocked") my-avatar)))))
+  'done)
+
+(define (check-lock direction) ;; Only really meant for debugging
+  (let ((exit (find-exit-in-direction direction (here))))
+    (if (not exit)
+        (tell! (list "No exit that way") my-avatar)
+        (if (not (lockable-exit? exit))
+            (tell! (list "No lock to check") my-avatar)
+            (if (get-locked exit)
+                (tell! (list "It's locked") my-avatar)
+                (tell! (list "It's unlocked") my-avatar)))))
+  'done)
 
 ;;; Support for UI
 
@@ -168,7 +213,7 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
 
     (can-go-both-ways lobby-10 'up 'down 10-250)
     (can-go-both-ways 10-250 'up 'down barker-library)
-    (can-go-both-ways barker-library 'up 'down great-dome)
+    (can-go-both-ways-lockable barker-library 'up 'down great-dome)
     (can-go-both-ways lobby-10 'west 'east lobby-7)
     (can-go-both-ways lobby-7 'west 'east dorm-row)
     (can-go-both-ways lobby-7 'up 'down little-dome)
@@ -281,6 +326,12 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
              'direction direction
              'to to))
 
+(define (create-lockable-exit from direction to)
+  (make-lockable-exit 'name 'lockable-exit
+                      'from from
+                      'direction direction
+                      'to to))
+
 (define (create-student name home restlessness acquisitiveness)
   (make-student 'name name
                 'location home
@@ -309,6 +360,10 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
 (define (can-go-both-ways from direction reverse-direction to)
   (create-exit from direction to)
   (create-exit to reverse-direction from))
+
+(define (can-go-both-ways-lockable from direction reverse-direction to)
+  (create-lockable-exit from direction to)
+  (create-lockable-exit to reverse-direction from))
 
 (define (can-see a b)
   (add-vista! a b))
