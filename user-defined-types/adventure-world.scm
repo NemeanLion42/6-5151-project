@@ -110,15 +110,17 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
         (tell! (list "No exit that way") my-avatar)
         (if (not (lockable-exit? exit))
             (tell! (list "Nothing to lock") my-avatar)
-            (if (get-locked exit)
-                (tell! (list "It's already locked") my-avatar)
-                (begin
-                  (set-locked! exit #t)
-                  (let ((opposite (find-exit (get-to exit) (here))))
-                    (if opposite
-                        (if (lockable-exit? opposite)
-                            (set-locked! opposite #t))))
-                  (tell! (list "You lock it") my-avatar))))))
+            (if (not (can-open-exit? my-avatar exit))
+                (tell! (list "You don't have the key!") my-avatar)
+                (if (get-locked exit)
+                    (tell! (list "It's already locked") my-avatar)
+                    (begin
+                      (set-locked! exit #t)
+                      (let ((opposite (find-exit (get-to exit) (here))))
+                        (if opposite
+                            (if (lockable-exit? opposite)
+                                (set-locked! opposite #t))))
+                      (tell! (list "You lock it") my-avatar)))))))
   'done)
 
 (define (unlock direction)
@@ -127,15 +129,17 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
         (tell! (list "No exit that way") my-avatar)
         (if (not (lockable-exit? exit))
             (tell! (list "Nothing to unlock") my-avatar)
-            (if (get-locked exit)
-                (begin
-                  (set-locked! exit #f)
-                  (let ((opposite (find-exit (get-to exit) (here))))
-                     (if opposite
-                         (if (lockable-exit? opposite)
-                             (set-locked! opposite #f))))
-                  (tell! (list "You unlock it") my-avatar))
-                (tell! (list "It's already unlocked") my-avatar)))))
+            (if (not (can-open-exit? my-avatar exit))
+                (tell! (list "You don't have the key!") my-avatar)
+                (if (get-locked exit)
+                    (begin
+                      (set-locked! exit #f)
+                      (let ((opposite (find-exit (get-to exit) (here))))
+                         (if opposite
+                             (if (lockable-exit? opposite)
+                                 (set-locked! opposite #f))))
+                      (tell! (list "You unlock it") my-avatar))
+                    (tell! (list "It's already unlocked") my-avatar))))))
   'done)
 
 (define (check-lock direction) ;; Only really meant for debugging
@@ -256,6 +260,7 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
     (create-mobile-thing 'recitation-problem 32-123)
     (create-mobile-thing 'sicp student-street)
     (create-mobile-thing 'engineering-book barker-library)
+    (create-key 'dome-key dorm-row (cons barker-library great-dome))
 
     (list great-dome little-dome lobby-10
           10-250 barker-library lobby-7
@@ -316,6 +321,11 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
 (define (create-mobile-thing name location)
   (make-mobile-thing 'name name
                      'location location))
+
+(define (create-key name location locations)
+  (make-key 'name name
+            'location location
+            'locations locations))
 
 (define (create-place name)
   (make-place 'name name))

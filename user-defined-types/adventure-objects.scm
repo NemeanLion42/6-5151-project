@@ -213,6 +213,45 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   (most-specific-generic-procedure 'leave-place! 1
     (constant-generic-procedure-handler #f)))
 
+;;; Keys
+(define (simple-pair? x) (and (pair? x) (not (list? x))))
+
+(define key:locations
+  (make-property 'locations
+                 'predicate simple-pair?))
+
+(define key?
+  (make-type 'key (list key:locations)))
+(set-predicate<=! key? mobile-thing?)
+
+(define make-key
+  (type-instantiator key?))
+
+(define get-locations
+  (property-getter key:locations key?))
+
+(define (key-opens-location? key location)
+  (or (equal? (car (get-locations key)) location)
+      (equal? (cdr (get-locations key)) location)))
+
+(define (key-opens-exit? key exit)
+  (or (equal? (get-locations key) (cons (get-to exit) (get-from exit)))
+      (equal? (get-locations key) (cons (get-from exit) (get-to exit)))))
+
+(define (can-open-location? actor location)
+  (if (find (lambda (thing)
+              (and (key? thing)
+                   (key-opens-location? thing location)))
+            (get-things actor))
+      #t #f))
+
+(define (can-open-exit? actor exit)
+  (if (find (lambda (thing)
+              (and (key? thing)
+                   (key-opens-exit? thing exit)))
+            (get-things actor))
+      #t #f))
+
 ;;; People
 
 (define person:health
