@@ -230,20 +230,9 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
 (define get-locations
   (property-getter key:locations key?))
 
-(define (key-opens-location? key location)
-  (or (equal? (car (get-locations key)) location)
-      (equal? (cdr (get-locations key)) location)))
-
 (define (key-opens-exit? key exit)
   (or (equal? (get-locations key) (cons (get-to exit) (get-from exit)))
       (equal? (get-locations key) (cons (get-from exit) (get-to exit)))))
-
-(define (can-open-location? actor location)
-  (if (find (lambda (thing)
-              (and (key? thing)
-                   (key-opens-location? thing location)))
-            (get-things actor))
-      #t #f))
 
 (define (can-open-exit? actor exit)
   (if (find (lambda (thing)
@@ -251,6 +240,52 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
                    (key-opens-exit? thing exit)))
             (get-things actor))
       #t #f))
+
+;;; Weapons
+
+(define weapon:damage
+  (make-property 'damage
+                 'predicate integer?))
+
+(define weapon:accuracy
+  (make-property 'accuracy
+                 'predicate number?))
+
+(define weapon?
+  (make-type 'weapon (list weapon:damage weapon:accuracy)))
+(set-predicate<=! weapon? mobile-thing?)
+
+(define make-weapon
+  (type-instantiator weapon?))
+
+(define get-damage
+  (property-getter weapon:damage weapon?))
+
+(define get-accuracy
+  (property-getter weapon:accuracy weapon?))
+
+;;; Armor
+
+(define armor:evasion
+  (make-property 'evasion
+                 'predicate number?))
+
+(define armor:resistance
+  (make-property 'resistance
+                 'predicate number?))
+
+(define armor?
+  (make-type 'armor (list armor:evasion armor:resistance)))
+(set-predicate<=! armor? mobile-thing?)
+
+(define make-armor
+  (type-instantiator armor?))
+
+(define get-evasion
+  (property-getter armor:evasion armor?))
+
+(define get-resistance
+  (property-getter armor:resistance armor?))
 
 ;;; People
 
@@ -330,6 +365,7 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
             (get-things person))
   (announce!
    '("An earth-shattering, soul-piercing scream is heard..."))
+  (narrate! (list (get-name person) "is no more...") person)
   (set-health! person 0)
   (move! person (get-heaven) person))
 
@@ -338,6 +374,39 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   (set-health! person health)
   (move! person (get-origin person) person))
 
+;;; Attacking
+
+(define (rng chance) (< (random 1.0) chance))
+
+(define (attack! target-name weapon-name actor)
+  (let ((target (find-object-by-name target-name (people-here actor)))
+        (weapon (find-object-by-name weapon-name (get-things actor))))
+    (if (not target)
+        (tell! (list "No such person here") actor)
+        (cond ((eqv? weapon-name 'fist)
+               (do-attack! target 'fist actor 1 0.8))
+              ((weapon? weapon)
+               (do-attack! target (get-name weapon) actor (get-damage weapon) (get-accuracy weapon)))
+              (else
+               (tell! (list "No such weapon") actor))))))
+
+(define (do-attack! target weapon-name actor damage accuracy)
+  (narrate! (list (get-name actor) "attacks" (get-name target) "with their" weapon-name) actor)
+  (if (not (rng accuracy))
+      (narrate! (list (get-name actor) "misses!") actor)
+      (let ((armor #f))
+        (if (or (and (not armor)
+                     (rng 0.1))
+                (and armor
+                     (rng 0.1)))
+            (narrate! (list (get-name target) "manages to dodge out of the way!") actor)
+            (if (and armor
+                     (rng 0.1))
+                (narrate! (list (get-name target) "deflects the blow!") actor)
+                (begin
+                  (narrate! (list (get-name actor) "hits!") actor)
+                  (suffer! damage target)))))))
+
 ;;; Bags
 
 (define bag:holder

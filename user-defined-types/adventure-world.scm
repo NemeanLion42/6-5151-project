@@ -152,6 +152,9 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
                 (tell! (list "It's locked") my-avatar)
                 (tell! (list "It's unlocked") my-avatar)))))
   'done)
+
+(define (attack target weapon)
+  (attack! target weapon my-avatar))
 
 ;;; Support for UI
 
@@ -261,6 +264,8 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
     (create-mobile-thing 'sicp student-street)
     (create-mobile-thing 'engineering-book barker-library)
     (create-key 'dome-key dorm-row (cons barker-library great-dome))
+    (create-weapon 'sword the-dot 2 0.7)
+    (create-armor 'leather-armor tunnel 0.1 0.2)
 
     (list great-dome little-dome lobby-10
           10-250 barker-library lobby-7
@@ -326,6 +331,18 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   (make-key 'name name
             'location location
             'locations locations))
+
+(define (create-weapon name location damage accuracy)
+  (make-weapon 'name name
+               'location location
+               'damage damage
+               'accuracy accuracy))
+
+(define (create-armor name location evasion resistance)
+  (make-armor 'name name
+              'location location
+              'evasion evasion
+              'resistance resistance))
 
 (define (create-place name)
   (make-place 'name name))
