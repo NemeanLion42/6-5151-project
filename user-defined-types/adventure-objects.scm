@@ -287,6 +287,9 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
 (define get-resistance
   (property-getter armor:resistance armor?))
 
+(define (get-armor person)
+  (find armor? (get-things person)))
+
 ;;; People
 
 (define person:health
@@ -394,15 +397,15 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   (narrate! (list (get-name actor) "attacks" (get-name target) "with their" weapon-name) actor)
   (if (not (rng accuracy))
       (narrate! (list (get-name actor) "misses!") actor)
-      (let ((armor #f))
+      (let ((armor (get-armor target)))
         (if (or (and (not armor)
-                     (rng 0.1))
+                     (rng 0.3))
                 (and armor
-                     (rng 0.1)))
+                     (rng (get-evasion armor))))
             (narrate! (list (get-name target) "manages to dodge out of the way!") actor)
             (if (and armor
-                     (rng 0.1))
-                (narrate! (list (get-name target) "deflects the blow!") actor)
+                     (rng (get-resistance armor)))
+                (narrate! (list (get-name target) "is protected by their armor!") actor)
                 (begin
                   (narrate! (list (get-name actor) "hits!") actor)
                   (suffer! damage target)))))))
@@ -657,7 +660,9 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   (lambda (mobile-thing from to actor)
     (let ((former-holder (get-holder from))
           (new-holder (get-holder to)))
-      (cond ((eqv? from to)
+      (cond ((armor? mobile-thing)
+             (tell! '("How exactly do you want to get the armor from them?") actor))
+            ((eqv? from to)
              (tell! (list new-holder "is already carrying"
                           mobile-thing)
                     actor))
@@ -677,19 +682,23 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
                              "from" former-holder
                              "and gives it to" new-holder)
                        actor)))
-      (if (not (eqv? actor former-holder))
-          (say! former-holder (list "Yaaaah! I am upset!")))
-      (if (not (eqv? actor new-holder))
-          (say! new-holder (list "Whoa! Where'd you get this?")))
-      (if (not (eqv? from to))
-          (move-internal! mobile-thing from to)))))
+      (if (not (armor? mobile-thing))
+          (begin
+            (if (not (eqv? actor former-holder))
+                (say! former-holder (list "Yaaaah! I am upset!")))
+            (if (not (eqv? actor new-holder))
+                (say! new-holder (list "Whoa! Where'd you get this?")))
+            (if (not (eqv? from to))
+                (move-internal! mobile-thing from to)))))))
 
 ;; coderef: generic-move:take
 (define-generic-procedure-handler generic-move!
   (match-args mobile-thing? place? bag? person?)
   (lambda (mobile-thing from to actor)
     (let ((new-holder (get-holder to)))
-      (cond ((eqv? actor new-holder)
+      (cond ((and (armor? mobile-thing) (get-armor new-holder))
+             (tell! '("You're already wearing armor! You can't wear another set!") new-holder))
+            ((eqv? actor new-holder)
              (narrate! (list actor
                              "picks up" mobile-thing)
                        actor))
@@ -698,9 +707,11 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
                              "picks up" mobile-thing
                              "and gives it to" new-holder)
                        actor)))
-      (if (not (eqv? actor new-holder))
-          (say! new-holder (list "Whoa! Thanks, dude!")))
-      (move-internal! mobile-thing from to))))
+      (if (not (and (armor? mobile-thing) (get-armor new-holder)))
+          (begin
+            (if (not (eqv? actor new-holder))
+                (say! new-holder (list "Whoa! Thanks, dude!")))
+            (move-internal! mobile-thing from to))))))
 
 ;; coderef: generic-move:drop
 (define-generic-procedure-handler generic-move!

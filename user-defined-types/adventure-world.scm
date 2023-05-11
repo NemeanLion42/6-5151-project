@@ -265,7 +265,9 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
     (create-mobile-thing 'engineering-book barker-library)
     (create-key 'dome-key dorm-row (cons barker-library great-dome))
     (create-weapon 'sword the-dot 2 0.7)
-    (create-armor 'leather-armor tunnel 0.1 0.2)
+    (create-armor 'leather-armor lobby-10 0.25 0.2)
+    (create-armor 'chainmail-armor lobby-10 0.15 0.3)
+
 
     (list great-dome little-dome lobby-10
           10-250 barker-library lobby-7
