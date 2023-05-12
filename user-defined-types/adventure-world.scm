@@ -63,7 +63,8 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
 (define (take-thing name)
   (let ((thing (find-thing name (here))))
     (if thing
-        (take-thing! thing my-avatar)))
+        (if (equal? #t (take-thing! thing my-avatar))
+            (tick! (get-clock)))))
   'done)
 
 (define (drop-thing name)
@@ -120,7 +121,8 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
                         (if opposite
                             (if (lockable-exit? opposite)
                                 (set-locked! opposite #t))))
-                      (tell! (list "You lock it") my-avatar)))))))
+                      (tell! (list "You lock it") my-avatar)
+                      (tick! (get-clock))))))))
   'done)
 
 (define (unlock direction)
@@ -138,7 +140,8 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
                          (if opposite
                              (if (lockable-exit? opposite)
                                  (set-locked! opposite #f))))
-                      (tell! (list "You unlock it") my-avatar))
+                      (tell! (list "You unlock it") my-avatar)
+                      (tick! (get-clock)))
                     (tell! (list "It's already unlocked") my-avatar))))))
   'done)
 
@@ -154,7 +157,14 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   'done)
 
 (define (attack target weapon)
-  (attack! target weapon my-avatar))
+  (if (equal? #t (attack! target weapon my-avatar))
+      (tick! (get-clock)))
+  'done)
+
+(define (rest)
+  (if (equal? #t (rest! my-avatar))
+      (tick! (get-clock)))
+  'done)
 
 ;;; Support for UI
 
@@ -265,8 +275,8 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
     (create-mobile-thing 'engineering-book barker-library)
     (create-key 'dome-key dorm-row (cons barker-library great-dome))
     (create-weapon 'sword the-dot 2 0.7)
-    (create-armor 'leather-armor lobby-10 0.25 0.2)
-    (create-armor 'chainmail-armor lobby-10 0.15 0.3)
+    (create-armor 'leather-armor tunnel 0.25 0.2)
+    (create-armor 'chainmail-armor 32D 0.15 0.3)
 
 
     (list great-dome little-dome lobby-10
@@ -288,8 +298,9 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
          (create-student name
                          (random-choice places)
                          (random-bias 5)
+                         (random-bias 5)
                          (random-bias 5)))
-       '(ben-bitdiddle alyssa-hacker course-6-frosh lambda-man)))
+       '(ben-bitdiddle alyssa-hacker course-6-frosh lambda-man jack-florey james-e-tetazoo j-arthur-random)))
 
 ;; (define (create-profs places)
 ;;   (map (lambda (name)
@@ -361,17 +372,19 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
                       'direction direction
                       'to to))
 
-(define (create-student name home restlessness acquisitiveness)
+(define (create-student name home restlessness acquisitiveness aggressiveness)
   (make-student 'name name
                 'location home
                 'restlessness restlessness
-                'acquisitiveness acquisitiveness))
+                'acquisitiveness acquisitiveness
+                'aggressiveness aggressiveness))
 
 (define (create-house-master name home restlessness irritability)
   (make-house-master 'name name
                      'location home
                      'restlessness restlessness
-                     'acquisitiveness 1/10
+                     'acquisitiveness 1/5
+                     'aggressiveness 1/4
                      'irritability irritability))
 
 (define (create-troll name place restlessness hunger)
@@ -379,6 +392,7 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
               'location place
               'restlessness restlessness
               'acquisitiveness 1/10
+              'aggressiveness 2/3
               'hunger hunger))
 
 (define (create-avatar name place)

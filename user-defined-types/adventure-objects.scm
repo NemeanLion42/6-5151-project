@@ -241,6 +241,12 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
             (get-things actor))
       #t #f))
 
+;;; Unstealable things
+
+(define unstealable-thing?
+  (make-type 'unstealable-thing '()))
+(set-predicate<=! unstealable-thing? mobile-thing?)
+
 ;;; Weapons
 
 (define weapon:damage
@@ -253,7 +259,7 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
 
 (define weapon?
   (make-type 'weapon (list weapon:damage weapon:accuracy)))
-(set-predicate<=! weapon? mobile-thing?)
+(set-predicate<=! weapon? unstealable-thing?)
 
 (define make-weapon
   (type-instantiator weapon?))
@@ -276,7 +282,7 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
 
 (define armor?
   (make-type 'armor (list armor:evasion armor:resistance)))
-(set-predicate<=! armor? mobile-thing?)
+(set-predicate<=! armor? unstealable-thing?)
 
 (define make-armor
   (type-instantiator armor?))
@@ -292,10 +298,12 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; People
 
+(define max-health 10)
+
 (define person:health
   (make-property 'health
                  'predicate n:exact-integer?
-                 'default-value 3))
+                 'default-value max-health))
 
 (define person:bag
   (make-property 'bag
@@ -357,8 +365,8 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
 
 (define (suffer! hits person)
   (guarantee n:exact-positive-integer? hits)
-  (say! person (list "Ouch!" hits "hits is more than I want!"))
-  (set-health! person (- (get-health person) hits))
+  (set-health! person (max 0 (- (get-health person) hits)))
+  (say! person (list "Ouch!" hits "hits is more than I want! I'm down to" (get-health person) "of" max-health "HP"))
   (if (< (get-health person) 1)
       (die! person)))
 
@@ -377,21 +385,23 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   (set-health! person health)
   (move! person (get-origin person) person))
 
-;;; Attacking
+;;; Combat
 
 (define (rng chance) (< (random 1.0) chance))
 
 (define (attack! target-name weapon-name actor)
-  (let ((target (find-object-by-name target-name (people-here actor)))
-        (weapon (find-object-by-name weapon-name (get-things actor))))
-    (if (not target)
-        (tell! (list "No such person here") actor)
-        (cond ((eqv? weapon-name 'fist)
-               (do-attack! target 'fist actor 1 0.8))
-              ((weapon? weapon)
-               (do-attack! target (get-name weapon) actor (get-damage weapon) (get-accuracy weapon)))
-              (else
-               (tell! (list "No such weapon") actor))))))
+  (if (equal? heaven (get-location actor))
+      (tell! '("No fighting in heaven!") actor)
+      (let ((target (find-object-by-name target-name (people-here actor)))
+            (weapon (find-object-by-name weapon-name (get-things actor))))
+        (if (not target)
+            (tell! (list "No such person here") actor)
+            (cond ((eqv? weapon-name 'fist)
+                   (do-attack! target 'fist actor 1 0.8))
+                  ((weapon? weapon)
+                   (do-attack! target (get-name weapon) actor (get-damage weapon) (get-accuracy weapon)))
+                  (else
+                   (tell! (list "No such weapon") actor)))))))
 
 (define (do-attack! target weapon-name actor damage accuracy)
   (narrate! (list (get-name actor) "attacks" (get-name target) "with their" weapon-name) actor)
@@ -408,7 +418,21 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
                 (narrate! (list (get-name target) "is protected by their armor!") actor)
                 (begin
                   (narrate! (list (get-name actor) "hits!") actor)
-                  (suffer! damage target)))))))
+                  (suffer! damage target))))))
+  #t)
+
+(define (rest! actor)
+  (if (= (get-health actor) max-health)
+      (begin
+        (tell! '("You're already at full health.") actor)
+        #f)
+      (begin
+        (if (rng 0.5)
+            (begin
+              (set-health! actor (min max-health (+ 1 (get-health actor))))
+              (say! actor (list "Ah... I'm up to" (get-health actor) "of" max-health "HP")))
+            (tell! '("You feel your strength slowly returning.") actor))
+        #t)))
 
 ;;; Bags
 
@@ -441,10 +465,15 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   (make-property 'acquisitiveness
                  'predicate bias?))
 
+(define autonomous-agent:aggressiveness
+  (make-property 'aggressiveness
+                 'predicate bias?))
+
 (define autonomous-agent?
   (make-type 'autonomous-agent
              (list autonomous-agent:restlessness
-                   autonomous-agent:acquisitiveness)))
+                   autonomous-agent:acquisitiveness
+                   autonomous-agent:aggressiveness)))
 (set-predicate<=! autonomous-agent? person?)
 
 (define get-restlessness
@@ -453,6 +482,10 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
 
 (define get-acquisitiveness
   (property-getter autonomous-agent:acquisitiveness
+                   autonomous-agent?))
+
+(define get-aggressiveness
+  (property-getter autonomous-agent:aggressiveness
                    autonomous-agent?))
 
 (define-generic-procedure-handler set-up!
@@ -467,25 +500,48 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
     (unregister-with-clock! agent (get-clock))
     (super agent)))
 
-(define (move-and-take-stuff! agent)
-  (if (flip-coin (get-restlessness agent))
-      (move-somewhere! agent))
-  (if (flip-coin (get-acquisitiveness agent))
-      (take-something! agent)))
+(define (do-autonomous-actions! agent)
+  (let ((to-take (random-choice (takeable-things-here agent)))
+        (to-attack (random-choice (people-here agent))))
+    (cond ((and to-take
+                (flip-coin (get-acquisitiveness agent)))
+           (take-thing! to-take agent))
+          ((and to-attack
+                (flip-coin (get-aggressiveness agent)))
+           (attack! (get-name to-attack)
+                    (best-weapon-name agent)
+                    agent))
+          ((flip-coin (get-restlessness agent))
+           (move-somewhere! agent))
+          (else (rest! agent)))))
+
+(define (takeable-things-here agent)
+  (append (filter (lambda (object)
+                    (and (or (not (get-armor agent))
+                             (not (armor? object)))
+                         (mobile-thing? object)))
+                  (things-here agent))
+          (filter (lambda (object)
+                    (not (unstealable-thing? object)))
+                  (peoples-things agent))))
+
+(define (best-weapon-name agent)
+  (let ((weapons (filter weapon? (get-things agent))))
+    (if (equal? weapons '())
+        'fist
+        (get-name (car (sort weapons
+                             (lambda (a b)
+                               (> (* (get-damage a)
+                                     (get-accuracy a))
+                                  (* (get-damage b)
+                                     (get-accuracy b))))))))))
 
 (define (move-somewhere! agent)
   (let ((exit (random-choice (exits-here agent))))
     (if exit
         (take-exit! exit agent))))
 
-(define (take-something! agent)
-  (let ((thing
-         (random-choice (append (things-here agent)
-                                (peoples-things agent)))))
-    (if thing
-        (take-thing! thing agent))))
-
-(define-clock-handler autonomous-agent? move-and-take-stuff!)
+(define-clock-handler autonomous-agent? do-autonomous-actions!)
 
 ;;; Students
 
@@ -660,8 +716,8 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   (lambda (mobile-thing from to actor)
     (let ((former-holder (get-holder from))
           (new-holder (get-holder to)))
-      (cond ((armor? mobile-thing)
-             (tell! '("How exactly do you want to get the armor from them?") actor))
+      (cond ((unstealable-thing? mobile-thing)
+             (tell! '("How exactly do you want to get that from them?") actor))
             ((eqv? from to)
              (tell! (list new-holder "is already carrying"
                           mobile-thing)
@@ -682,7 +738,7 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
                              "from" former-holder
                              "and gives it to" new-holder)
                        actor)))
-      (if (not (armor? mobile-thing))
+      (if (not (unstealable-thing? mobile-thing))
           (begin
             (if (not (eqv? actor former-holder))
                 (say! former-holder (list "Yaaaah! I am upset!")))
@@ -779,4 +835,5 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   (remove-thing! from mobile-thing)
   (set-location! mobile-thing to)
   (add-thing! to mobile-thing)
-  (enter-place! mobile-thing))
+  (enter-place! mobile-thing)
+  #t)

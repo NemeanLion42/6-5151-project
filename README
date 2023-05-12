@@ -8,27 +8,41 @@ To run the adventure game:
    (manage 'new 'user-defined-types)
 5. Start a game
    (start-adventure player-name)
-   Where player-name is e.g. 'steve
+   example: (start-adventure 'steve)
    
 Once you have started a game, use the following commands. Unless noted otherwise, all arguments should be quoted expressions. Arguments in curly braces are optional. Arguments in brackets will accept any number of arguments.
 
 (go direction)
     Go from the room you are in to the room in the specified direction.
+    example: (go 'east)
 (take-thing thing)
     Take the specified thing from the current room or another person in the room.
+    example: (take-thing 'problem-set)
 (drop-thing thing)
     Drop the specified thing you are holding.
+    example: (drop-thing 'problem-set)
 (look-in-bag {person})
     Look in your bag or the specified person's bag.
+    example: (look-in-bag 'ben-bitdiddle)
 (whats-here)
     See what's in the current room.
 (say [message])
     Say something to everyone in the room.
+    example: (say "Hi everyone!")
 (tell person [message])
     Tell a person in the room something.
+    example: (tell 'ben-bitdiddle "Go away!")
 (hang-out ticks)
     Wait for the specified number of ticks.
+    example: (hang-out 3)
 (lock direction)
     Lock the exit leading in the specified direction.
+    example: (lock 'down)
 (unlock direction)
     Unlock the exit leading in the specified direction.
+    example: (unlock 'up)
+(attack person weapon)
+    Attack the specified person with the specified weapon. (If you don't have a weapon, you can use your fist.)
+    example: (attack 'ben-bitdiddle 'fist)
+(rest)
+    Rest to slowly recover your health.
