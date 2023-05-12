@@ -52,6 +52,30 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   (lambda (message thing)
     #f))
 
+;;; Signs
+
+(define sign:message
+  (make-property 'message
+                 'predicate string?))
+
+(define sign?
+  (make-type 'sign (list sign:message)))
+(set-predicate<=! sign? thing?)
+
+(define make-sign
+  (type-instantiator sign?))
+
+(define get-message
+  (property-getter sign:message sign?))
+
+(define (read-sign! sign-name actor)
+  (let ((sign (find-object-by-name sign-name (all-things-in-place (get-location actor)))))
+    (if (not sign)
+        (tell! '("No such sign here.") actor)
+        (if (not (sign? sign))
+            (tell! '("That is not a sign.") actor)
+            (tell! (list "It says" (get-message sign)) actor)))))
+
 ;;; Containers
 
 (define container:things

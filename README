@@ -46,3 +46,6 @@ Once you have started a game, use the following commands. Unless noted otherwise
     example: (attack 'ben-bitdiddle 'fist)
 (rest)
     Rest to slowly recover your health.
+(read sign)
+    Read the specified sign.
+    example: (read 'quest-notes)

@@ -33,10 +33,16 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   (set! the-clock (make-clock))
   (set! all-places (create-mit))
   (set! heaven (create-place 'heaven))
-  (set! all-people (create-people all-places))
+  (set! all-people (create-people
+                    (filter (lambda (object)
+                              (not (or (equal? (get-name object)
+                                               'great-dome)
+                                       (equal? (get-name object)
+                                               'dorm-room))))
+                            all-places)))
   (set! my-avatar
         (create-avatar my-name
-                       (random-choice all-places)))
+                       (find-object-by-name 'dorm-room all-places)))
   (whats-here))
 
 (define (get-all-places)
@@ -165,6 +171,10 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   (if (equal? #t (rest! my-avatar))
       (tick! (get-clock)))
   'done)
+
+(define (read sign)
+  (read-sign! sign my-avatar)
+  'done)
 
 ;;; Support for UI
 
@@ -226,6 +236,7 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
         (great-court (create-place 'great-court))
         (bldg-54 (create-place 'green-building))
         (the-dot (create-place 'the-dot))
+        (dorm-room (create-place 'dorm-room))
         (dorm-row (create-place 'dorm-row)))
 
     (can-go-both-ways lobby-10 'up 'down 10-250)
@@ -244,6 +255,7 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
     (can-go-both-ways tunnel 'up 'down bldg-54)
     (can-go-both-ways bldg-54 'south 'north the-dot)
     (can-go-both-ways the-dot 'west 'east great-court)
+    (can-go-both-ways-lockable the-dot 'east 'west dorm-room)
     (can-go-both-ways student-street 'in 'out 32-123)
     (can-go-both-ways student-street 'up 'down 32G)
     (can-go-both-ways student-street 'skew 'down 32D)
@@ -263,17 +275,22 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
     (can-see-both-ways lobby-7 infinite)
     (can-see-both-ways infinite bldg-26)
     (can-see-both-ways lobby-10 lobby-7)
+    (can-see-both-ways the-dot dorm-room)
 
     ; Create some things
     (create-thing 'blackboard 10-250)
     (create-thing 'lovely-trees great-court)
     (create-thing 'flag-pole great-court)
     (create-thing 'calder-sculpture the-dot)
+    (create-sign 'quest-notes dorm-room
+                 "I have heard tell of a mystical object that lies at the height of the most carefully guarded part of the Institvte. If I can make it up there, retrieve the object, and bring it back here, who knows what fortune may bless me...")
     (create-mobile-thing 'problem-set 32-123)
     (create-mobile-thing 'recitation-problem 32-123)
     (create-mobile-thing 'sicp student-street)
     (create-mobile-thing 'engineering-book barker-library)
+    (create-mobile-thing 'minifridge-full-of-grapes great-dome)
     (create-key 'dome-key dorm-row (cons barker-library great-dome))
+    (create-key 'room-key dorm-room (cons the-dot dorm-room))
     (create-weapon 'sword the-dot 2 0.7)
     (create-weapon 'spear 32G 3 0.5)
     (create-weapon 'mace great-court 4 0.4)
@@ -286,8 +303,8 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
           10-250 barker-library lobby-7
           infinite bldg-26 cp32
           tunnel 32-123 32D 32G
-          student-street bldg-54 the-dot
-          dorm-row)))
+          student-street great-court bldg-54
+          the-dot dorm-room dorm-row)))
 
 (define (create-people places)
   (append (create-students places)
@@ -338,6 +355,11 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
 (define (create-thing name location)
   (make-thing 'name name
               'location location))
+
+(define (create-sign name location message)
+  (make-sign 'name name
+             'location location
+             'message message))
 
 (define (create-mobile-thing name location)
   (make-mobile-thing 'name name
