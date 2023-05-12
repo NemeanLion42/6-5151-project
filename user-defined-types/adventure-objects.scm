@@ -213,6 +213,12 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   (most-specific-generic-procedure 'leave-place! 1
     (constant-generic-procedure-handler #f)))
 
+;;; Unstealable things
+
+(define unstealable-thing?
+  (make-type 'unstealable-thing '()))
+(set-predicate<=! unstealable-thing? mobile-thing?)
+
 ;;; Keys
 (define (simple-pair? x) (and (pair? x) (not (list? x))))
 
@@ -222,7 +228,7 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
 
 (define key?
   (make-type 'key (list key:locations)))
-(set-predicate<=! key? mobile-thing?)
+(set-predicate<=! key? unstealable-thing?)
 
 (define make-key
   (type-instantiator key?))
@@ -240,12 +246,6 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
                    (key-opens-exit? thing exit)))
             (get-things actor))
       #t #f))
-
-;;; Unstealable things
-
-(define unstealable-thing?
-  (make-type 'unstealable-thing '()))
-(set-predicate<=! unstealable-thing? mobile-thing?)
 
 ;;; Weapons
 
@@ -717,7 +717,7 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
     (let ((former-holder (get-holder from))
           (new-holder (get-holder to)))
       (cond ((unstealable-thing? mobile-thing)
-             (tell! '("How exactly do you want to get that from them?") actor))
+             (tell! '("You can't find a way to take that from them.") actor))
             ((eqv? from to)
              (tell! (list new-holder "is already carrying"
                           mobile-thing)
