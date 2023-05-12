@@ -76,7 +76,9 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
 (define (drop-thing name)
   (let ((thing (find-thing name my-avatar)))
     (if thing
-        (drop-thing! thing my-avatar)))
+        (begin
+          (drop-thing! thing my-avatar)
+          (check-for-victory!))))
   'done)
 
 (define (look-in-bag #!optional person-name)
@@ -177,6 +179,21 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   'done)
 
 ;;; Support for UI
+
+(define initial-quest-message "I have heard tell of a mystical object that lies at the height of the most carefully guarded part of the Institvte. If I can make it up there, retrieve the object, and bring it back here, who knows what fortune may bless me...")
+
+(define finished-quest-message "I have collected the artifact spoken of in the legends, and now my hunger for grapes will never go unfilled again.")
+
+(define victory-message "You feel a surge of accomplishment as you set down the minifridge, knowing in your heart that your hunger for grapes will never go unfilled again.")
+
+(define (check-for-victory!)
+  (let ((notes (find-object-by-name 'quest-notes (things-in-place (here)))))
+    (if (and (equal? 'dorm-room (get-name (here)))
+             (find-object-by-name 'minifridge-full-of-grapes (things-in-place (here)))
+             (equal? initial-quest-message (get-message notes)))
+        (begin
+          (set-message! notes finished-quest-message)
+          (tell! (list victory-message) my-avatar)))))
 
 (define (here)
   (get-location my-avatar))
@@ -283,7 +300,7 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
     (create-thing 'flag-pole great-court)
     (create-thing 'calder-sculpture the-dot)
     (create-sign 'quest-notes dorm-room
-                 "I have heard tell of a mystical object that lies at the height of the most carefully guarded part of the Institvte. If I can make it up there, retrieve the object, and bring it back here, who knows what fortune may bless me...")
+                 initial-quest-message)
     (create-mobile-thing 'problem-set 32-123)
     (create-mobile-thing 'recitation-problem 32-123)
     (create-mobile-thing 'sicp student-street)

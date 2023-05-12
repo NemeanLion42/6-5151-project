@@ -68,6 +68,9 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
 (define get-message
   (property-getter sign:message sign?))
 
+(define set-message!
+  (property-setter sign:message sign? string?))
+
 (define (read-sign! sign-name actor)
   (let ((sign (find-object-by-name sign-name (all-things-in-place (get-location actor)))))
     (if (not sign)
@@ -527,7 +530,8 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
 (define (do-autonomous-actions! agent)
   (let ((to-take (random-choice (takeable-things-here agent)))
         (to-attack (random-choice (people-here agent))))
-    (cond ((and to-take
+    (cond ((equal? (get-name (get-location agent)) 'heaven))
+          ((and to-take
                 (flip-coin (get-acquisitiveness agent)))
            (take-thing! to-take agent))
           ((and to-attack
@@ -593,8 +597,10 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   (property-getter house-master:irritability house-master?))
 
 (define (irritate-students! master)
-  (let ((students (filter student? (people-here master))))
-    (if (flip-coin (get-irritability master))
+  (let ((students (filter student? (people-here master)))
+        (in-heaven (equal? (get-name (get-location master)) 'heaven)))
+    (if (and (flip-coin (get-irritability master))
+             (not in-heaven))
         (if (n:pair? students)
             (begin
               (say! master
@@ -610,7 +616,8 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
                         students))
             (say! master
                   '("Grrr... When I catch those students...")))
-        (if (n:pair? students)
+        (if (and (n:pair? students)
+                 (not in-heaven))
             (say! master
                   '("I'll let you off this once..."))))))
 
@@ -633,7 +640,8 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
   (property-getter troll:hunger troll?))
 
 (define (eat-people! troll)
-  (if (flip-coin (get-hunger troll))
+  (if (and (flip-coin (get-hunger troll))
+           (not (equal? (get-name (get-location troll)) 'heaven)))
       (let ((people (people-here troll)))
         (if (n:null? people)
             (narrate! (list (possessive troll) "belly rumbles")
