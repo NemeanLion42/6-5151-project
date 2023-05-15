@@ -1,0 +1,6 @@
+(define (make-line n char)
+  (if (<= n 0)
+      ""
+      (string-append char (make-line (- n 1) char))))
+
+(make-line 5 -)
