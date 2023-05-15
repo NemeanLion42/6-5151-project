@@ -338,6 +338,13 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
                          (random-bias 5)
                          (random-bias 5)))
        '(ben-bitdiddle alyssa-hacker course-6-frosh lambda-man jack-florey james-e-tetazoo j-arthur-random)))
+(define (create-merchants places)
+  (map (lambda (name)
+         (create-merchant name
+                         (random-choice places)
+                         (random-bias 5)
+                         (random-bias 5)))
+       '(joe-trader sam-merchant tim-trader liam-trader)))
 
 ;; (define (create-profs places)
 ;;   (map (lambda (name)

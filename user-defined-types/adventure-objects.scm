@@ -579,6 +579,15 @@ along with SDF.  If not, see <https://www.gnu.org/licenses/>.
 
 (define make-student
   (type-instantiator student?))
+
+;;; Merchant
+
+(define merchant?
+  (make-type 'merchant '()))
+(set-predicate<=! merchant? autonomous-agent?)
+
+(define make-merchant
+  (type-instantiator merchant?))
 
 ;;; House masters
 
